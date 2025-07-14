@@ -35,3 +35,12 @@ An interactive Streamlit web app to analyze and screen Nifty 500 stocks using te
    git clone https://github.com/your-username/nifty500-screener.git
    cd nifty500-screener
    ```
+
+2. Install Dependencies:
+
+   pip install -r requirements.txt
+
+3. Run the app:
+
+   streamlit run app.py
+
