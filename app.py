@@ -237,8 +237,8 @@ elif view == "Strategy Scanner":
 elif view == "Watchlist":
 
     entries = load_watchlist()
+df_wl = pd.DataFrame(entries) if entries else pd.DataFrame(columns=['Company', 'Strategy', 'Signal'])
     if not entries:
-        st.info("Your watchlist is empty.")
     else:
         df_wl = pd.DataFrame(entries)
         signals_col = df_wl["Signal"].fillna("").astype(str)
@@ -258,8 +258,8 @@ elif view == "Watchlist":
 # 📋 WATCHLIST ENTRIES
 # =====================
 entries = load_watchlist()
+df_wl = pd.DataFrame(entries) if entries else pd.DataFrame(columns=['Company', 'Strategy', 'Signal'])
 if not entries:
-    st.info("Your watchlist is empty.")
 else:
     df_wl = pd.DataFrame(entries)
 for entry in entries.copy():
