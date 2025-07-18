@@ -5,6 +5,7 @@ import pandas as pd
 import yfinance as yf
 import streamlit as st
 import concurrent.futures
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from utils import (
     get_data, auto_analysis, generate_chart,
     scan_20d_breakout, scan_golden_cross, scan_bb_breakout,
