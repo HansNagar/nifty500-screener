@@ -5,7 +5,6 @@ import pandas as pd
 import yfinance as yf
 import streamlit as st
 import concurrent.futures
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from utils import (
     get_data, auto_analysis, generate_chart,
     scan_20d_breakout, scan_golden_cross, scan_bb_breakout,
@@ -237,8 +236,8 @@ elif view == "Strategy Scanner":
 elif view == "Watchlist":
 
     entries = load_watchlist()
-df_wl = pd.DataFrame(entries) if entries else pd.DataFrame(columns=['Company', 'Strategy', 'Signal'])
     if not entries:
+        st.info("Your watchlist is empty.")
     else:
         df_wl = pd.DataFrame(entries)
         signals_col = df_wl["Signal"].fillna("").astype(str)
@@ -258,8 +257,8 @@ df_wl = pd.DataFrame(entries) if entries else pd.DataFrame(columns=['Company', '
 # 📋 WATCHLIST ENTRIES
 # =====================
 entries = load_watchlist()
-df_wl = pd.DataFrame(entries) if entries else pd.DataFrame(columns=['Company', 'Strategy', 'Signal'])
 if not entries:
+    st.info("Your watchlist is empty.")
 else:
     df_wl = pd.DataFrame(entries)
 for entry in entries.copy():
