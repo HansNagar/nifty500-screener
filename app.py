@@ -240,7 +240,6 @@ elif view == "Watchlist":
     if df_wl.empty:
         st.info("Your watchlist is empty.")
     else:
-                else:
         df_wl = pd.DataFrame(entries)
         signals_col = df_wl["Signal"].fillna("").astype(str)
         total = len(df_wl)
