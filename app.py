@@ -280,7 +280,6 @@ for entry in entries.copy():
         if df is not None:
             st.write(f"Price: {df['Close'].iat[-1]:.2f}")
         meta = fetch_company_meta(sym) if sym else {}
-meta = fetch_company_meta(sym) if sym else {}
         st.write(f"Industry: {meta.get('Industry','N/A')}")
 sel = st.selectbox("Select for Details", df_wl["Company"].tolist())
 sym = nifty_dict.get(sel)
