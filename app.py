@@ -238,7 +238,7 @@ elif view == "Watchlist":
 
     entries = load_watchlist()
     if not entries:
-    st.info("Your watchlist is empty.")
+        st.info("Your watchlist is empty.")
     else:
         df_wl = pd.DataFrame(entries)
         signals_col = df_wl["Signal"].fillna("").astype(str)
