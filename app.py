@@ -260,7 +260,6 @@ elif view == "Watchlist":
 if not entries:
     st.info("Your watchlist is empty.")
 else:
-    pass  # Placeholder to fix indentation error
 for entry in entries.copy():
     comp = entry["Company"]
     sig = entry.get("Signal", "")
