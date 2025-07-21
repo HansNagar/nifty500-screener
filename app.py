@@ -235,12 +235,12 @@ elif view == "Strategy Scanner":
 # =====================
 
 elif view == "Watchlist":
-
     entries = load_watchlist()
+    df_wl = pd.DataFrame(entries) if entries else pd.DataFrame(columns=["Company", "Strategy", "Signal"])
+
     if not entries:
         st.info("Your watchlist is empty.")
     else:
-        df_wl = pd.DataFrame(entries)
         signals_col = df_wl["Signal"].fillna("").astype(str)
         total = len(df_wl)
         buys = signals_col.str.contains("Buy").sum()
@@ -257,11 +257,9 @@ elif view == "Watchlist":
 # =====================
 # 📋 WATCHLIST ENTRIES
 # =====================
-entries = load_watchlist()
 if not entries:
     st.info("Your watchlist is empty.")
 else:
-    df_wl = pd.DataFrame(entries)
 for entry in entries.copy():
     comp = entry["Company"]
     sig = entry.get("Signal", "")
@@ -280,7 +278,8 @@ for entry in entries.copy():
             st.write(f"Price: {df['Close'].iat[-1]:.2f}")
         meta = fetch_company_meta(sym) if sym else {}
         st.write(f"Industry: {meta.get('Industry','N/A')}")
-sel = st.selectbox("Select for Details", df_wl["Company"].tolist())
+    if not df_wl.empty:
+        sel = st.selectbox("Select for Details", df_wl["Company"].tolist())
 sym = nifty_dict.get(sel)
 if sym:
     df_sel = get_data(sym)
