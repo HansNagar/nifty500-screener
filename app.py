@@ -233,6 +233,7 @@ elif view == "Strategy Scanner":
 # 📋 WATCHLIST VIEW
 # =====================
 
+
 elif view == "Watchlist":
 
     entries = load_watchlist()
@@ -257,9 +258,6 @@ elif view == "Watchlist":
 # =====================
 # 📋 WATCHLIST ENTRIES
 # =====================
-entries = load_watchlist()
-if not entries:
-    st.info("Your watchlist is empty.")
 else:
     df_wl = pd.DataFrame(entries)
 for entry in entries.copy():
@@ -282,10 +280,7 @@ for entry in entries.copy():
         st.write(f"Industry: {meta.get('Industry','N/A')}")
 
 # Ensure df_wl is defined and valid before using in selectbox
-entries = load_watchlist()
-if not entries:
-    st.info("Your watchlist is empty.")
-    st.stop()
+st.stop()
 df_wl = pd.DataFrame(entries)
 if df_wl.empty or "Company" not in df_wl.columns:
     st.info("No valid entries in watchlist.")
