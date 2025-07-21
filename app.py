@@ -5,6 +5,7 @@ import pandas as pd
 import yfinance as yf
 import streamlit as st
 import concurrent.futures
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from utils import (
     get_data, auto_analysis, generate_chart,
     scan_20d_breakout, scan_golden_cross, scan_bb_breakout,
@@ -233,12 +234,10 @@ elif view == "Strategy Scanner":
 # 📋 WATCHLIST VIEW
 # =====================
 
-
 elif view == "Watchlist":
 
     entries = load_watchlist()
-    df_wl = pd.DataFrame(entries) if entries else pd.DataFrame(columns=["Company", "Strategy", "Signal"])
-    if df_wl.empty:
+    if not entries:
         st.info("Your watchlist is empty.")
     else:
         df_wl = pd.DataFrame(entries)
@@ -258,6 +257,9 @@ elif view == "Watchlist":
 # =====================
 # 📋 WATCHLIST ENTRIES
 # =====================
+entries = load_watchlist()
+if not entries:
+    st.info("Your watchlist is empty.")
 else:
     df_wl = pd.DataFrame(entries)
 for entry in entries.copy():
@@ -278,13 +280,6 @@ for entry in entries.copy():
             st.write(f"Price: {df['Close'].iat[-1]:.2f}")
         meta = fetch_company_meta(sym) if sym else {}
         st.write(f"Industry: {meta.get('Industry','N/A')}")
-
-# Ensure df_wl is defined and valid before using in selectbox
-st.stop()
-df_wl = pd.DataFrame(entries)
-if df_wl.empty or "Company" not in df_wl.columns:
-    st.info("No valid entries in watchlist.")
-    st.stop()
 sel = st.selectbox("Select for Details", df_wl["Company"].tolist())
 sym = nifty_dict.get(sel)
 if sym:
