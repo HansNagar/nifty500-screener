@@ -280,36 +280,7 @@ for entry in entries.copy():
             st.write(f"Price: {df['Close'].iat[-1]:.2f}")
         meta = fetch_company_meta(sym) if sym else {}
         st.write(f"Industry: {meta.get('Industry','N/A')}")
-if entries:
-    df_wl = pd.DataFrame(entries)
-    sel = st.selectbox("Select for Details", df_wl["Company"].tolist())
-    sym = nifty_dict.get(sel)
-    if sym:
-        df_sel = get_data(sym)
-        price = df_sel['Close'].iat[-1]
-        rsi = df_sel['RSI'].iat[-1]
-        sma20 = df_sel['SMA_20'].iat[-1]
-        avgvol = int(df_sel['Volume'].rolling(window=20).mean().iat[-1])
-        sig = st.session_state.get("last_scan_signals", {}).get(sel, "")
-        st.subheader(f"Details for {sel}")
-        c1, c2, c3, c4 = st.columns(4)
-        with c1:
-            st.metric("Price", f"{price:.2f}")
-            st.metric("RSI", f"{rsi:.2f}")
-        with c2:
-            st.metric("SMA 20", f"{sma20:.2f}")
-            st.metric("Avg Vol", f"{avgvol}")
-        with c3:
-            st.metric("Signal", sig)
-        with c4:
-            st.write(f"Industry: {fetch_company_meta(sym).get('Industry','N/A')}")
-        if st.checkbox("📈 Show Chart", key=f"wl_chart_{sel}"):
-            st.plotly_chart(generate_chart(df_sel), use_container_width=True)
-        if st.button("❌ Remove from Watchlist"):
-            new_entries = [e for e in entries if e.get("Company") != sel]
-            save_watchlist(new_entries)
-            st.success(f"{sel} removed from watchlist.")
-            st.experimental_rerun()
+sel = st.selectbox("Select for Details", df_wl["Company"].tolist())
 sym = nifty_dict.get(sel)
 if sym:
     df_sel = get_data(sym)
