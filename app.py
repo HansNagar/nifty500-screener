@@ -264,8 +264,17 @@ for entry in entries.copy():
     comp = entry["Company"]
     sig = entry.get("Signal", "")
     sym = nifty_dict.get(comp)
-    df = get_data(sym) if sym else None
-    col1, col2 = st.columns([1, 4])
+    if not isinstance(sym, str) or not sym:
+        st.warning(f"Invalid symbol for {comp}")
+        continue
+    try:
+        df = get_data(sym)
+        if df is None or df.empty:
+            st.warning(f"No data available for {comp}")
+            continue
+    except Exception as e:
+        st.warning(f"Error fetching data for {comp}: {e}")
+        continue
     with col1:
         if st.button("❌ Remove", key=f"rm_{comp}"):
             entries.remove(entry)
@@ -278,8 +287,7 @@ for entry in entries.copy():
             st.write(f"Price: {df['Close'].iat[-1]:.2f}")
         meta = fetch_company_meta(sym) if sym else {}
         st.write(f"Industry: {meta.get('Industry','N/A')}")
-    if not df_wl.empty:
-        sel = st.selectbox("Select for Details", df_wl["Company"].tolist())
+sel = st.selectbox("Select for Details", df_wl["Company"].tolist())
 sym = nifty_dict.get(sel)
 if sym:
     df_sel = get_data(sym)
