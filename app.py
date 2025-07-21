@@ -235,12 +235,12 @@ elif view == "Strategy Scanner":
 # =====================
 
 elif view == "Watchlist":
-    entries = load_watchlist()
-    df_wl = pd.DataFrame(entries) if entries else pd.DataFrame(columns=["Company", "Strategy", "Signal"])
 
+    entries = load_watchlist()
     if not entries:
         st.info("Your watchlist is empty.")
     else:
+        df_wl = pd.DataFrame(entries)
         signals_col = df_wl["Signal"].fillna("").astype(str)
         total = len(df_wl)
         buys = signals_col.str.contains("Buy").sum()
@@ -257,9 +257,11 @@ elif view == "Watchlist":
 # =====================
 # 📋 WATCHLIST ENTRIES
 # =====================
+entries = load_watchlist()
 if not entries:
     st.info("Your watchlist is empty.")
 else:
+    df_wl = pd.DataFrame(entries)
 for entry in entries.copy():
     comp = entry["Company"]
     sig = entry.get("Signal", "")
