@@ -261,7 +261,7 @@ if not entries:
     st.info("Your watchlist is empty.")
 else:
 
-else:
+# FIXED: Invalid else statement removed
     for entry in entries.copy():
         comp = entry["Company"]
         sig = entry.get("Signal", "")
