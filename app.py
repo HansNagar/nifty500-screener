@@ -280,6 +280,14 @@ for entry in entries.copy():
             st.write(f"Price: {df['Close'].iat[-1]:.2f}")
         meta = fetch_company_meta(sym) if sym else {}
         st.write(f"Industry: {meta.get('Industry','N/A')}")
+entries = load_watchlist()
+if not entries:
+    st.info("Your watchlist is empty.")
+    st.stop()
+df_wl = pd.DataFrame(entries)
+if df_wl.empty or "Company" not in df_wl.columns:
+    st.info("No valid entries in watchlist.")
+    st.stop()
 sel = st.selectbox("Select for Details", df_wl["Company"].tolist())
 sym = nifty_dict.get(sel)
 if sym:
@@ -307,10 +315,7 @@ if sym:
         new_entries = [e for e in entries if e.get("Company") != sel]
         save_watchlist(new_entries)
         st.success(f"{sel} removed from watchlist.")
-        st.experimental_rerun()
-
-        for entry in entries.copy():
-            comp = entry["Company"]
+        st.experimental_rerun()            comp = entry["Company"]
             sig = entry.get("Signal", "")
             sym = nifty_dict.get(comp)
             df = get_data(sym) if sym else None
