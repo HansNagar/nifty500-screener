@@ -219,14 +219,6 @@ elif view == "Strategy Scanner":
         st.session_state.last_scan_signals = dict(zip(df_scan["Company"], df_scan["Signal"]))
         st.session_state.last_scan_strategy = strategy
 
-# ✅ Display scan results if available
-df_merged = st.session_state.get("df_merged")
-if df_merged is not None and not df_merged.empty:
-    st.subheader("📊 Scan Results")
-    st.dataframe(df_merged)
-else:
-    st.info("No signals found or scan not yet run.")
-
     df_merged = st.session_state.get("df_merged")
     if df_merged is None:
         st.info("Click ▶️ Run Scan to generate signals.")
