@@ -219,6 +219,14 @@ elif view == "Strategy Scanner":
         st.session_state.last_scan_signals = dict(zip(df_scan["Company"], df_scan["Signal"]))
         st.session_state.last_scan_strategy = strategy
 
+# ✅ Display scan results if available
+df_merged = st.session_state.get("df_merged")
+if df_merged is not None and not df_merged.empty:
+    st.subheader("📊 Scan Results")
+    st.dataframe(df_merged)
+else:
+    st.info("No signals found or scan not yet run.")
+
     df_merged = st.session_state.get("df_merged")
     if df_merged is None:
         st.info("Click ▶️ Run Scan to generate signals.")
@@ -280,14 +288,6 @@ for entry in entries.copy():
             st.write(f"Price: {df['Close'].iat[-1]:.2f}")
         meta = fetch_company_meta(sym) if sym else {}
         st.write(f"Industry: {meta.get('Industry','N/A')}")
-entries = load_watchlist()
-if not entries:
-    st.info("Your watchlist is empty.")
-    st.stop()
-df_wl = pd.DataFrame(entries)
-if df_wl.empty or "Company" not in df_wl.columns:
-    st.info("No valid entries in watchlist.")
-    st.stop()
 sel = st.selectbox("Select for Details", df_wl["Company"].tolist())
 sym = nifty_dict.get(sel)
 if sym:
