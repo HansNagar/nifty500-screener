@@ -237,6 +237,7 @@ elif view == "Strategy Scanner":
 elif view == "Watchlist":
 
     entries = load_watchlist()
+    df_wl = pd.DataFrame(entries) if entries else pd.DataFrame(columns=["Company", "Strategy", "Signal"])
     if not entries:
         st.info("Your watchlist is empty.")
     else:
