@@ -260,7 +260,8 @@ elif view == "Watchlist":
 if not entries:
     st.info("Your watchlist is empty.")
 else:
-    else:
+
+else:
     for entry in entries.copy():
         comp = entry["Company"]
         sig = entry.get("Signal", "")
