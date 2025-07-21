@@ -260,7 +260,25 @@ elif view == "Watchlist":
 if not entries:
     st.info("Your watchlist is empty.")
 else:
-for entry in entries.copy():
+    else:
+    for entry in entries.copy():
+        comp = entry["Company"]
+        sig = entry.get("Signal", "")
+        sym = nifty_dict.get(comp)
+        df = get_data(sym) if sym else None
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            if st.button("❌ Remove", key=f"rm_{comp}"):
+                entries.remove(entry)
+                save_watchlist(entries)
+                st.experimental_rerun()
+        with col2:
+            st.subheader(comp)
+            st.write(f"Signal: {sig}")
+            if df is not None:
+                st.write(f"Price: {df['Close'].iat[-1]:.2f}")
+            meta = fetch_company_meta(sym) if sym else {}
+            st.write(f"Industry: {meta.get('Industry','N/A')}")
     comp = entry["Company"]
     sig = entry.get("Signal", "")
     sym = nifty_dict.get(comp)
