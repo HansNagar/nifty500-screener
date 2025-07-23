@@ -5,7 +5,6 @@ import pandas as pd
 import yfinance as yf
 import streamlit as st
 import concurrent.futures
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from utils import (
     get_data, auto_analysis, generate_chart, format_df_crores,
     scan_20d_breakout, scan_golden_cross, scan_bb_breakout,
@@ -15,10 +14,6 @@ from utils import (
 
 WATCHLIST_FILE = "watchlist.json"
 CSV_URL_500 = "https://archives.nseindia.com/content/indices/ind_nifty500list.csv"
-
-# =====================
-# 📥 WATCHLIST HELPERS
-# =====================
 
 @st.cache_data(show_spinner=False)
 def load_watchlist():
@@ -94,10 +89,6 @@ def custom_strategy_rule(df, indicator, operator, value):
         return last == value
     return False
 
-# =====================
-# ⚙️ STRATEGY EXECUTION
-# =====================
-
 def run_strategy_scan(name: str, custom_rule=None) -> pd.DataFrame:
     if name == "Custom":
         rows = []
@@ -139,9 +130,16 @@ def run_strategy_scan(name: str, custom_rule=None) -> pd.DataFrame:
                     pass
         return pd.DataFrame(rows)
 
-# =====================
-# 🚀 APP CONFIG + INIT
-# =====================
+def human_format(num):
+    try:
+        num = float(num)
+    except Exception:
+        return str(num)
+    for unit in ['', 'K', 'M', 'Cr', 'B']:
+        if abs(num) < 1000.0:
+            return f"{num:,.0f}{unit}"
+        num /= 1000.0
+    return f"{num:.1f}T"
 
 st.set_page_config(page_title='Nifty 500 Screener', layout='wide', page_icon='📊')
 st.markdown("""
@@ -151,6 +149,8 @@ st.markdown("""
     .signal-badge {padding:2px 8px;border-radius:8px;font-weight:bold;}
     .signal-buy {background:#d4f8e8;color:green;}
     .signal-sell {background:#ffeaea;color:red;}
+    .company-card {background: #f8fafc; border-radius: 12px; padding: 18px 24px; margin-bottom: 18px; box-shadow: 0 2px 8px #0001;}
+    .insight-badge {padding:6px 12px;border-radius:8px;font-weight:bold;margin-right:8px;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -158,10 +158,7 @@ nifty_dict = load_nifty5000()
 all_companies = sorted(nifty_dict.keys())
 view = st.sidebar.radio("Select View", ["Dashboard", "Strategy Scanner", "Watchlist"])
 
-# =====================
-# 📊 DASHBOARD VIEW
-# =====================
-
+# --- Dashboard Section ---
 if view == "Dashboard":
     st.sidebar.subheader("🔍 Search Company")
     query = st.sidebar.text_input("Type name or symbol", "")
@@ -187,6 +184,7 @@ if view == "Dashboard":
 
     info = tkr.info or {}
     industry = info.get("industry", "N/A")
+    sector = info.get("sector", "N/A")
     website = info.get("website", "")
     domain = website.split("//")[-1].split("/")[0] if website else None
     logo_url = f"https://logo.clearbit.com/{domain}" if domain else None
@@ -196,39 +194,70 @@ if view == "Dashboard":
     except Exception:
         ratios = {}
 
-    st.title(f"📦 {company}")
-    if logo_url and website:
-        st.markdown(f"[![logo]({logo_url})]({website})", unsafe_allow_html=True)
-    elif logo_url:
-        st.image(logo_url, width=80)
-    st.caption(f"Last Updated: {last_updated}")
+    st.markdown(
+        f"""
+        <div class="company-card">
+            <div style="display:flex;align-items:center;">
+                {'<img src="'+logo_url+'" width="60" style="margin-right:18px;border-radius:8px;">' if logo_url else ''}
+                <div>
+                    <span style="font-size:1.6em;font-weight:700;">{company}</span><br>
+                    <span style="color:#666;font-size:1.1em;">{sector}</span> &nbsp;|&nbsp; <span style="color:#888;">{industry}</span><br>
+                    {'<a href="'+website+'" target="_blank" style="color:#1a73e8;">🌐 Website</a>' if website else ''}
+                </div>
+            </div>
+            <div style="margin-top:8px;color:#aaa;font-size:0.95em;">Last Updated: {last_updated}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    m1, m2, m3, m4, m5, m6, m7 = st.columns(7)
+    with m1:
+        st.metric("Price", f"{current_price:.2f}")
+    with m2:
+        rsi_val = df['RSI'].iat[-1]
+        rsi_color = "🟢" if rsi_val < 30 else "🔴" if rsi_val > 70 else "⚪"
+        st.metric("RSI", f"{rsi_val:.2f} {rsi_color}")
+    with m3:
+        st.metric("SMA 20", f"{sma_20:.2f}")
+    with m4:
+        st.metric("SMA 50", f"{sma_50:.2f}")
+    with m5:
+        avg_vol_help = f"{avg_vol:,}" if isinstance(avg_vol, (int, float)) else "N/A"
+        st.metric("Avg Vol (20D)", human_format(avg_vol), help=avg_vol_help)
+    with m6:
+        pe = ratios.get("P/E (ttm)")
+        st.metric("P/E (ttm)", f"{pe:.2f}" if pe else "N/A")
+    with m7:
+        mcap = ratios.get("Market Cap")
+        mcap_help = f"{mcap:,}" if isinstance(mcap, (int, float)) else "N/A"
+        st.metric("Market Cap", human_format(mcap) if mcap else "N/A", help=mcap_help)
+
+    st.markdown("---")
 
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "📈 Overview", "🧠 Insights", "📊 Financials", "📌 Key Ratios", "📉 Analytics"
     ])
     with tab1:
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric("Price", f"{current_price:.2f}")
-            st.metric("RSI", f"{df['RSI'].iat[-1]:.2f}")
-        with col2:
-            st.metric("SMA 20", f"{sma_20:.2f}")
-            st.metric("SMA 50", f"{sma_50:.2f}")
-        with col3:
-            st.metric("Avg Vol (20D)", f"{avg_vol}")
-            st.metric("Industry", industry)
-        with col4:
-            pe = ratios.get("P/E (ttm)")
-            mcap = ratios.get("Market Cap")
-            st.metric("P/E (ttm)", f"{pe:.2f}" if pe else "N/A")
-            st.metric("Market Cap", mcap if mcap else "N/A")
-        if st.checkbox("📉 Show Technical Chart", value=False):
-            st.plotly_chart(generate_chart(df), use_container_width=True)
+        st.subheader("Price & Technicals")
+        st.plotly_chart(generate_chart(df), use_container_width=True)
+        st.caption("Candlestick, SMA20, Bollinger Bands, Supertrend, RSI, and Volume.")
+
+        st.markdown("#### Last 20 Days Trend")
+        import plotly.graph_objs as go
+        spark = df['Close'].tail(20).tolist()
+        fig = go.Figure(go.Scatter(y=spark, mode="lines", line=dict(color="#4e79a7")))
+        fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=60, width=400, xaxis=dict(visible=False), yaxis=dict(visible=False))
+        st.plotly_chart(fig, use_container_width=False)
 
     with tab2:
         st.subheader("Technical Insights")
         for insight in auto_analysis(df):
-            st.markdown(f"- {insight}")
+            color = "green" if "Buy" in insight or "UP" in insight or "Oversold" in insight else "red" if "Sell" in insight or "DOWN" in insight or "Overbought" in insight else "gray"
+            st.markdown(
+                f"<span class='insight-badge' style='background-color:{'#e6ffe6' if color=='green' else '#ffeaea' if color=='red' else '#f0f0f0'};color:{color};'>{insight}</span>",
+                unsafe_allow_html=True
+            )
 
     with tab3:
         try:
@@ -247,8 +276,11 @@ if view == "Dashboard":
             _, _, _, rts = get_financial_data(symbol)
             ratio_names = list(rts.keys())
             ratio_selected = st.selectbox("Select Ratio", ratio_names, key=f"dashboard_ratio_{symbol}")
-            st.metric(ratio_selected, rts[ratio_selected])
-            st.dataframe(pd.DataFrame.from_dict(rts, orient='index', columns=['Value']), use_container_width=True)
+            st.metric(ratio_selected, to_crore(rts[ratio_selected]))
+            df_ratios = pd.DataFrame.from_dict(rts, orient='index', columns=['Value'])
+            df_ratios_display = df_ratios.copy()
+            df_ratios_display['Value'] = df_ratios_display['Value'].apply(to_crore)
+            st.dataframe(df_ratios_display, use_container_width=True)
         except Exception as e:
             st.error(f"Error fetching ratios: {e}")
 
@@ -292,14 +324,22 @@ if view == "Dashboard":
         st.metric("Buy Signals", rsi_buys)
         st.metric("Sell Signals", rsi_sells)
 
-# =====================
-# 🔍 STRATEGY SCANNER
-# =====================
-
+# --- Strategy Scanner Section ---
 elif view == "Strategy Scanner":
     st.title("🔍 Strategy Scanner")
-    strategy = st.sidebar.selectbox("Pick a Strategy", list(strategies.keys()) + ["Custom"])
-    drill_prefix = st.sidebar.text_input("Drill-down Prefix", "")
+    st.markdown("Scan the Nifty 500 universe for technical signals. Use the sidebar to pick or build your strategy.")
+
+    with st.sidebar:
+        strategy = st.selectbox("Pick a Strategy", list(strategies.keys()) + ["Custom"])
+        st.markdown("---")
+        st.markdown("**Filter Universe**")
+        filter_sector = st.checkbox("Filter by Sector")
+        sector_val = None
+        if filter_sector:
+            all_sectors = sorted(set(fetch_company_meta(nifty_dict[c])["Sector"] for c in all_companies))
+            sector_val = st.selectbox("Sector", all_sectors)
+        filter_signal = st.checkbox("Show only Buy signals")
+        st.markdown("---")
 
     custom_rule = None
     if strategy == "Custom":
@@ -345,27 +385,34 @@ elif view == "Strategy Scanner":
                 meta["Company"] = comp
                 df_tmp = get_data(sym)
                 meta["AvgVol20D"] = int(df_tmp["Volume"].rolling(20).mean().iat[-1])
+                meta["LastPrice"] = df_tmp["Close"].iat[-1]
+                meta["RSI"] = df_tmp["RSI"].iat[-1]
                 meta_rows.append(meta)
             df_merged = df_scan.merge(pd.DataFrame(meta_rows), on="Company")
+            if filter_sector and sector_val:
+                df_merged = df_merged[df_merged["Sector"] == sector_val]
+            if filter_signal:
+                df_merged = df_merged[df_merged["Signal"].str.contains("Buy")]
             st.session_state.df_merged = df_merged
             st.session_state.last_scan_signals = dict(zip(df_scan["Company"], df_scan["Signal"]))
             st.session_state.last_scan_strategy = strategy
 
     df_merged = st.session_state.get("df_merged")
-    if df_merged is None:
+    if df_merged is None or df_merged.empty:
         st.info("Click ▶️ Run Scan to generate signals.")
         st.stop()
 
+    st.markdown("### Scan Results")
     search = st.text_input("🔍 Search results", "")
     df_display = df_merged if not search else df_merged[df_merged["Company"].str.contains(search, case=False)]
-    sort_col = st.selectbox("Sort by", ["Company", "Signal", "AvgVol20D"])
+    sort_col = st.selectbox("Sort by", ["Company", "Signal", "AvgVol20D", "LastPrice", "RSI"])
     df_display = df_display.sort_values(sort_col)
 
     if df_display.empty:
         st.info("No signals found.")
         st.stop()
 
-    styled_df = df_display.style.applymap(color_signal, subset=["Signal"])
+    styled_df = df_display.style.map(color_signal, subset=["Signal"])
     st.dataframe(styled_df, use_container_width=True)
     st.download_button("Download CSV", df_display.to_csv(index=False), "scan_results.csv")
 
@@ -402,10 +449,7 @@ elif view == "Strategy Scanner":
             else:
                 st.info(f"{selected} is already in your watchlist.")
 
-# =====================
-# 📋 WATCHLIST VIEW
-# =====================
-
+# --- Watchlist Section ---
 elif view == "Watchlist":
     entries = load_watchlist()
     df_wl = pd.DataFrame(entries) if entries else pd.DataFrame(columns=["Company", "Strategy", "Signal"])
@@ -413,10 +457,26 @@ elif view == "Watchlist":
     if not entries:
         st.info("Your watchlist is empty.")
     else:
+        st.markdown("### 📋 Watchlist")
         search = st.text_input("🔍 Search watchlist", "")
         df_wl_display = df_wl if not search else df_wl[df_wl["Company"].str.contains(search, case=False)]
         sort_col = st.selectbox("Sort by", ["Company", "Signal"], key="wl_sort")
         df_wl_display = df_wl_display.sort_values(sort_col)
+
+        meta_rows = []
+        for comp in df_wl_display["Company"]:
+            sym = nifty_dict.get(comp)
+            meta = fetch_company_meta(sym) if sym else {}
+            meta["Company"] = comp
+            df_tmp = get_data(sym) if sym else None
+            meta["AvgVol20D"] = int(df_tmp["Volume"].rolling(20).mean().iat[-1]) if df_tmp is not None else None
+            meta["LastPrice"] = df_tmp["Close"].iat[-1] if df_tmp is not None else None
+            meta["RSI"] = df_tmp["RSI"].iat[-1] if df_tmp is not None else None
+            meta["Spark"] = df_tmp["Close"].tail(20).tolist() if df_tmp is not None else []
+            meta_rows.append(meta)
+        if meta_rows:
+            df_meta = pd.DataFrame(meta_rows)
+            df_wl_display = df_wl_display.merge(df_meta, on="Company", how="left")
 
         signals_col = df_wl_display["Signal"].fillna("").astype(str)
         total = len(df_wl_display)
@@ -427,33 +487,52 @@ elif view == "Watchlist":
         col2.metric("Buy Signals", buys)
         col3.metric("Sell Signals", sells)
 
-        st.markdown("### Watchlist")
-        styled_wl = df_wl_display.style.applymap(color_signal, subset=["Signal"])
-        st.dataframe(styled_wl, use_container_width=True)
-        st.download_button("Download CSV", df_wl_display.to_csv(index=False), "watchlist.csv")
+        st.markdown("---")
 
-        for entry in entries.copy():
+        for idx, entry in df_wl_display.iterrows():
             comp = entry["Company"]
             sig = entry.get("Signal", "")
             sym = nifty_dict.get(comp)
-            df = get_data(sym) if sym else None
-            col1, col2 = st.columns([1, 4])
-            with col1:
-                if st.button("❌ Remove", key=f"rm_{comp}"):
-                    entries.remove(entry)
-                    save_watchlist(entries)
-                    st.rerun()
-            with col2:
-                st.subheader(comp)
-                st.write(f"Signal: {sig}")
-                if df is not None:
-                    st.write(f"Price: {df['Close'].iat[-1]:.2f}")
-                meta = fetch_company_meta(sym) if sym else {}
-                st.write(f"Industry: {meta.get('Industry','N/A')}")
+            meta = fetch_company_meta(sym) if sym else {}
+            price = entry.get("LastPrice", "N/A")
+            rsi = entry.get("RSI", "N/A")
+            avgvol = entry.get("AvgVol20D", "N/A")
+            sector = meta.get("Sector", "N/A")
+            industry = meta.get("Industry", "N/A")
+            spark = entry.get("Spark", [])
 
-        st.markdown("### 📋 Watchlist Details")
-        if not df_wl_display.empty:
-            sel = st.selectbox("Select a company for details", df_wl_display["Company"].tolist(), key="wl_details_select")
+            with st.container():
+                c1, c2, c3, c4, c5 = st.columns([2, 2, 2, 2, 1])
+                with c1:
+                    st.markdown(f"**{comp}**")
+                    st.markdown(f"<span style='font-size:16px;color:#888'>{sector}</span>", unsafe_allow_html=True)
+                    st.markdown(f"<span style='font-size:13px;color:#aaa'>{industry}</span>", unsafe_allow_html=True)
+                with c2:
+                    st.metric("Price", f"{price:.2f}" if price != "N/A" else "N/A")
+                    st.metric("RSI", f"{rsi:.2f}" if rsi != "N/A" else "N/A")
+                with c3:
+                    st.metric("Avg Vol", f"{avgvol:,}" if isinstance(avgvol, (int, float)) else "N/A")
+                    st.markdown(f"<span class='signal-badge {'signal-buy' if 'Buy' in sig else 'signal-sell' if 'Sell' in sig else ''}'>{sig}</span>", unsafe_allow_html=True)
+                with c4:
+                    if spark and isinstance(spark, list) and len(spark) > 1:
+                        import plotly.graph_objs as go
+                        fig = go.Figure(go.Scatter(y=spark, mode="lines", line=dict(color="#4e79a7")))
+                        fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=40, width=120, xaxis=dict(visible=False), yaxis=dict(visible=False))
+                        st.plotly_chart(fig, use_container_width=False)
+                    else:
+                        st.write("")
+                with c5:
+                    if st.button("❌", key=f"rm_{comp}"):
+                        entries = [e for e in entries if e.get("Company") != comp]
+                        save_watchlist(entries)
+                        st.success(f"{comp} removed from watchlist.")
+                        st.rerun()
+                    if st.button("🔍", key=f"dt_{comp}"):
+                        st.session_state["watchlist_details"] = comp
+                st.markdown("---")
+
+        sel = st.session_state.get("watchlist_details")
+        if sel:
             sym = nifty_dict.get(sel)
             if sym:
                 with st.spinner("Loading company data..."):
@@ -462,7 +541,7 @@ elif view == "Watchlist":
                 rsi = df_sel['RSI'].iat[-1]
                 sma20 = df_sel['SMA_20'].iat[-1]
                 avgvol = int(df_sel['Volume'].rolling(window=20).mean().iat[-1])
-                sig = st.session_state.get("last_scan_signals", {}).get(sel, df_wl[df_wl["Company"] == sel]["Signal"].values[0])
+                sig = df_wl_display[df_wl_display["Company"] == sel]["Signal"].values[0]
                 meta = fetch_company_meta(sym)
                 industry = meta.get('Industry', 'N/A')
                 sector = meta.get('Sector', 'N/A')
@@ -515,8 +594,11 @@ elif view == "Watchlist":
                         _, _, _, rts = get_financial_data(sym)
                         ratio_names = list(rts.keys())
                         ratio_selected = st.selectbox("Select Ratio", ratio_names, key=f"ratio_{sel}")
-                        st.metric(ratio_selected, rts[ratio_selected])
-                        st.dataframe(pd.DataFrame.from_dict(rts, orient='index', columns=['Value']), use_container_width=True)
+                        st.metric(ratio_selected, to_crore(rts[ratio_selected]))
+                        df_ratios = pd.DataFrame.from_dict(rts, orient='index', columns=['Value'])
+                        df_ratios_display = df_ratios.copy()
+                        df_ratios_display['Value'] = df_ratios_display['Value'].apply(to_crore)
+                        st.dataframe(df_ratios_display, use_container_width=True)
                     except Exception as e:
                         st.error(f"Error fetching ratios: {e}")
                 with tabs[4]:
